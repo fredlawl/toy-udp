@@ -16,6 +16,7 @@ struct udp_server_ctx {
   struct udp_server_cfg *cfg;
   enum udp_server_state_t state;
   void *lock;
+  int sk;
 };
 
 static const char MSG_ACK[5] = "ACK\n";
@@ -120,37 +121,42 @@ int udp_server_ctx_init(struct udp_server_cfg *cfg,
   (*ctx)->cfg = cfg;
   (*ctx)->lock = util_lock_init();
   (*ctx)->state = CLOSED;
+  (*ctx)->sk = -1;
   return err;
 }
 
+static void __close(struct udp_server_ctx *ctx) {
+  __set_state(ctx, CLOSED);
+  close(ctx->sk);
+}
+
 int udp_server_ctx_destroy(struct udp_server_ctx *ctx) {
+  __close(ctx);
+  util_lock_destroy(ctx->lock);
   free(ctx);
   return 0;
 }
 
 void *udp_server_serve(struct udp_server_ctx *ctx) {
-  int sk;
   struct udp_server_cfg *cfg = ctx->cfg;
 
   printf(PRINT_FMT "attempting to create server\n");
-  sk = __bind(cfg);
-  if (!sk) {
+  ctx->sk = __bind(cfg);
+  if (!ctx->sk) {
     fprintf(stderr, PRINT_FMT "failed to establish the server\n");
-    return NULL;
+    goto exit;
   }
 
   printf(PRINT_FMT "now listening on %s:%d\n", cfg->src_ip, cfg->src_port);
 
   __set_state(ctx, LISTENING);
 
-  if (!__recv(sk)) {
+  if (!__recv(ctx->sk)) {
     fprintf(stderr, PRINT_FMT "error handling messages\n");
   }
 
-  __set_state(ctx, CLOSED);
-
-  close(sk);
-  util_lock_destroy(ctx->lock);
+exit:
+  __close(ctx);
   return NULL;
 }
 

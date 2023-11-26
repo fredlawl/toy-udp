@@ -11,7 +11,10 @@
 
 struct udp_client_ctx {
   struct udp_client_cfg *cfg;
+  int sk;
 };
+
+static void __close(struct udp_client_ctx *ctx) { close(ctx->sk); }
 
 static int __connect(struct udp_client_cfg *cfg) {
   int sk;
@@ -54,37 +57,39 @@ int udp_client_ctx_init(struct udp_client_cfg *cfg,
   }
 
   (*ctx)->cfg = cfg;
+  (*ctx)->sk = -1;
   return 0;
 }
 
 int udp_client_ctx_destroy(struct udp_client_ctx *ctx) {
+  __close(ctx);
   free(ctx);
   return 0;
 }
 
 void *udp_client_serve(struct udp_client_ctx *ctx) {
-  int sk;
   char buff[128] = {0};
   ssize_t bytes_read = 0;
   struct udp_client_cfg *cfg = ctx->cfg;
 
   printf(PRINT_FMT "attempting client connect\n");
 
-  sk = __connect(cfg);
-  if (!sk) {
+  ctx->sk = __connect(cfg);
+  if (!ctx->sk) {
     fprintf(stderr, PRINT_FMT "failed to connect to %s:%d\n", cfg->dest_ip,
             cfg->dest_port);
-    return NULL;
+    goto exit;
   }
 
   memcpy(buff, "testing", sizeof("testing"));
-  write(sk, buff, sizeof(buff));
+  write(ctx->sk, buff, sizeof(buff));
 
-  while ((bytes_read = read(sk, buff, sizeof(buff))) > 0) {
+  while ((bytes_read = read(ctx->sk, buff, sizeof(buff))) > 0) {
     printf(PRINT_FMT "recv: %s\n", buff);
     memset(buff, 0, sizeof(buff));
   }
 
-  close(sk);
+exit:
+  __close(ctx);
   return NULL;
 }

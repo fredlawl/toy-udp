@@ -1,7 +1,5 @@
-#include <sys/types.h>
 #define PRINT_FMT "srv: "
 
-#include "server.h"
 #include <arpa/inet.h>
 #include <asm-generic/errno-base.h>
 #include <errno.h>
@@ -12,6 +10,7 @@
 #include <unistd.h>
 
 #include "lock.h"
+#include "server.h"
 
 struct udp_server_ctx {
   struct udp_server_cfg *cfg;

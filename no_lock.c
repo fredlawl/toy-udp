@@ -1,5 +1,6 @@
-#include "lock.h"
 #include <stdlib.h>
+
+#include "lock.h"
 
 inline void *util_lock_init() { return NULL; }
 

@@ -1,6 +1,5 @@
 #define PRINT_FMT "client: "
 
-#include "client.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -8,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "client.h"
 
 struct udp_client_ctx {
   struct udp_client_cfg *cfg;

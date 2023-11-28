@@ -1,11 +1,12 @@
 #define PRINT_FMT "main: "
 
-#include "client.h"
-#include "server.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "client.h"
+#include "server.h"
 
 #define DEST_IP "127.0.0.1"
 #define DEST_PORT 7111

@@ -1,3 +1,4 @@
+#include <sys/types.h>
 #define PRINT_FMT "srv: "
 
 #include "server.h"
@@ -76,10 +77,64 @@ static void __handle_msg(int sk, char *buff, size_t size,
   }
 }
 
+static void __send_nack(int sk, struct sockaddr_in *client,
+                        socklen_t client_len) {
+  ssize_t bytes_sent;
+  bytes_sent = sendto(sk, MSG_NACK, sizeof(MSG_NACK), 0,
+                      (struct sockaddr *)&client, client_len);
+  if (bytes_sent <= 0) {
+    fprintf(stderr, PRINT_FMT "unable to send data back\n");
+  }
+}
+
+/*
+  MSG_TRUNC | MSG_PEEK flags for recvfrom() allows us to know what the full
+  bytes sent are. We can use that to allocate a bigger buffer dynamically, and
+  then perform another recvfrom(). Test works good, but lots of extra
+  syscalls are needed.
+*/
+static int __recv_big_buffer(int sk) {
+  int err = 0;
+  char buff[512] = {0};
+  ssize_t bytes_read = 0;
+  struct sockaddr_in client;
+  socklen_t client_len = sizeof(client);
+
+  while (1) {
+    char *big_buff = NULL;
+    memset(buff, 0, sizeof(buff));
+    bytes_read = recvfrom(sk, buff, sizeof(buff) - 1, MSG_TRUNC | MSG_PEEK,
+                          (struct sockaddr *)&client, &client_len);
+    if (bytes_read < 0) {
+      __send_nack(sk, &client, client_len);
+    }
+
+    big_buff = calloc(bytes_read, sizeof(*big_buff));
+    if (!big_buff) {
+      perror(PRINT_FMT "calloc()");
+      __send_nack(sk, &client, client_len);
+      continue;
+    }
+
+    bytes_read = recvfrom(sk, big_buff, bytes_read - 1, MSG_TRUNC,
+                          (struct sockaddr *)&client, &client_len);
+    if (bytes_read < 0) {
+      __send_nack(sk, &client, client_len);
+      free(big_buff);
+      continue;
+    }
+
+    __handle_msg(sk, big_buff, bytes_read <= sizeof(buff), &client, client_len);
+    free(big_buff);
+  }
+
+  return err;
+}
+
 static int __recv(int sk) {
   int err = 0;
   char buff[512] = {0};
-  ssize_t bytes_read, bytes_sent = 0;
+  ssize_t bytes_read;
   struct sockaddr_in client;
   socklen_t client_len = sizeof(client);
 
@@ -88,18 +143,8 @@ static int __recv(int sk) {
     bytes_read = recvfrom(sk, buff, sizeof(buff) - 1, MSG_TRUNC,
                           (struct sockaddr *)&client, &client_len);
 
-    /*
-      MSG_TRUNC allows us to know if a message is too big. We can't perform
-      another read here, but coupled with MSG_PEEK, we could dynamically
-      allocate memory to shove the data into a bigger buffer, but that
-      complicates this playground
-    */
     if (bytes_read < 0 || bytes_read > sizeof(buff)) {
-      bytes_sent = sendto(sk, MSG_NACK, sizeof(MSG_NACK), 0,
-                          (struct sockaddr *)&client, client_len);
-      if (bytes_sent <= 0) {
-        fprintf(stderr, PRINT_FMT "unable to send data back\n");
-      }
+      __send_nack(sk, &client, client_len);
       continue;
     }
 

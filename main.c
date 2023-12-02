@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
     Normally, a state-machine would do the trick here, but I
     want to keep the client in the "main" thread.
   */
-  while (udp_server_state(server_ctx) != LISTENING) {
+  while (server_state(server_ctx) != LISTENING) {
   }
 
   err = client_ctx_init(&client_cfg, &client_ctx);

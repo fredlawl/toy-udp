@@ -12,5 +12,5 @@ struct server_cfg {
 
 int server_ctx_init(struct server_cfg *cfg, struct server_ctx **ctx);
 int server_ctx_destroy(struct server_ctx *ctx);
-enum server_state_t udp_server_state(struct server_ctx *ctx);
+enum server_state_t server_state(struct server_ctx *ctx);
 void *server_serve(struct server_ctx *ctx);

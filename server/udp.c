@@ -203,7 +203,7 @@ exit:
   return NULL;
 }
 
-enum server_state_t udp_server_state(struct server_ctx *ctx) {
+enum server_state_t server_state(struct server_ctx *ctx) {
   int ret = UNKNOWN;
   util_lock(ctx->lock);
   ret = ctx->state;

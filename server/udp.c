@@ -33,7 +33,7 @@ static enum server_state_t __set_state(struct server_ctx *ctx,
 }
 
 static int __bind(struct server_cfg *cfg) {
-  int sk;
+  int sk = 0;
   int err = 0;
   struct in_addr in_addr;
   struct sockaddr_in sock_addr = {.sin_family = AF_INET,

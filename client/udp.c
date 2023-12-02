@@ -18,7 +18,7 @@ struct client_ctx {
 static void __close(struct client_ctx *ctx) { close(ctx->sk); }
 
 static int __connect(struct client_cfg *cfg) {
-  int sk;
+  int sk = 0;
   int err = 0;
   struct in_addr in_addr;
   struct sockaddr_in sock_addr = {.sin_family = AF_INET,

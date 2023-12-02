@@ -7,7 +7,7 @@ OBJ += main.o server/udp.o client/udp.o
 WITH_LOCKS ?= y
 OBJ-LOCK-y := util/pthread_lock.o
 OBJ-LOCK-n := util/no_lock.o
-OBJ := $(OBJ) $(OBJ-LOCK-$(WITH_LOCKS))
+OBJ += $(OBJ-LOCK-$(WITH_LOCKS))
 
 .PHONY: all
 all: main

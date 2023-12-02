@@ -17,14 +17,13 @@ int main(int argc, char *argv[]) {
   int err = 0;
   pthread_attr_t attr = {0};
 
-  struct udp_server_ctx *server_ctx = NULL;
-  struct udp_server_cfg server_cfg = {.src_ip = DEST_IP, .src_port = DEST_PORT};
+  struct server_ctx *server_ctx = NULL;
+  struct server_cfg server_cfg = {.src_ip = DEST_IP, .src_port = DEST_PORT};
 
-  struct udp_client_ctx *client_ctx = NULL;
-  struct udp_client_cfg client_cfg = {.dest_ip = DEST_IP,
-                                      .dest_port = DEST_PORT};
+  struct client_ctx *client_ctx = NULL;
+  struct client_cfg client_cfg = {.dest_ip = DEST_IP, .dest_port = DEST_PORT};
 
-  err = udp_server_ctx_init(&server_cfg, &server_ctx);
+  err = server_ctx_init(&server_cfg, &server_ctx);
   if (err) {
     perror(PRINT_FMT "udp_server_ctx_init()");
     goto exit;
@@ -36,7 +35,7 @@ int main(int argc, char *argv[]) {
     goto exit;
   }
 
-  err = pthread_create(&tid, &attr, udp_server_serve, server_ctx);
+  err = pthread_create(&tid, &attr, server_serve, server_ctx);
   if (err) {
     perror(PRINT_FMT "pthread_create()");
     goto exit;
@@ -51,13 +50,13 @@ int main(int argc, char *argv[]) {
   while (udp_server_state(server_ctx) != LISTENING) {
   }
 
-  err = udp_client_ctx_init(&client_cfg, &client_ctx);
+  err = client_ctx_init(&client_cfg, &client_ctx);
   if (err) {
     perror(PRINT_FMT "udp_client_ctx_init()");
     goto exit;
   }
 
-  udp_client_serve(client_ctx);
+  client_serve(client_ctx);
 
   err = pthread_join(tid, NULL);
   if (err) {
@@ -65,9 +64,9 @@ int main(int argc, char *argv[]) {
   }
 
 exit:
-  udp_client_ctx_destroy(client_ctx);
+  client_ctx_destroy(client_ctx);
   pthread_detach(tid);
   pthread_attr_destroy(&attr);
-  udp_server_ctx_destroy(server_ctx);
+  server_ctx_destroy(server_ctx);
   return err;
 }

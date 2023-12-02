@@ -10,14 +10,14 @@
 
 #include "client.h"
 
-struct udp_client_ctx {
-  struct udp_client_cfg *cfg;
+struct client_ctx {
+  struct client_cfg *cfg;
   int sk;
 };
 
-static void __close(struct udp_client_ctx *ctx) { close(ctx->sk); }
+static void __close(struct client_ctx *ctx) { close(ctx->sk); }
 
-static int __connect(struct udp_client_cfg *cfg) {
+static int __connect(struct client_cfg *cfg) {
   int sk;
   int err = 0;
   struct in_addr in_addr;
@@ -49,8 +49,7 @@ exit:
   return 0;
 }
 
-int udp_client_ctx_init(struct udp_client_cfg *cfg,
-                        struct udp_client_ctx **ctx) {
+int client_ctx_init(struct client_cfg *cfg, struct client_ctx **ctx) {
   *ctx = malloc(sizeof(**ctx));
   if (!*ctx) {
     errno = ENOMEM;
@@ -62,16 +61,16 @@ int udp_client_ctx_init(struct udp_client_cfg *cfg,
   return 0;
 }
 
-int udp_client_ctx_destroy(struct udp_client_ctx *ctx) {
+int client_ctx_destroy(struct client_ctx *ctx) {
   __close(ctx);
   free(ctx);
   return 0;
 }
 
-void *udp_client_serve(struct udp_client_ctx *ctx) {
+void *client_serve(struct client_ctx *ctx) {
   char buff[128] = {0};
   ssize_t bytes_read = 0;
-  struct udp_client_cfg *cfg = ctx->cfg;
+  struct client_cfg *cfg = ctx->cfg;
 
   printf(PRINT_FMT "attempting client connect\n");
 

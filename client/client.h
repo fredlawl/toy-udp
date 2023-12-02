@@ -3,15 +3,14 @@
 
 #include <stdint.h>
 
-struct udp_client_ctx;
-struct udp_client_cfg {
+struct client_ctx;
+struct client_cfg {
   char *dest_ip;
   uint16_t dest_port;
 };
 
-int udp_client_ctx_init(struct udp_client_cfg *cfg,
-                        struct udp_client_ctx **ctx);
-int udp_client_ctx_destroy(struct udp_client_ctx *ctx);
-void *udp_client_serve(struct udp_client_ctx *ctx);
+int client_ctx_init(struct client_cfg *cfg, struct client_ctx **ctx);
+int client_ctx_destroy(struct client_ctx *ctx);
+void *client_serve(struct client_ctx *ctx);
 
 #endif

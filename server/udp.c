@@ -12,9 +12,9 @@
 #include "server.h"
 #include "util/lock.h"
 
-struct udp_server_ctx {
-  struct udp_server_cfg *cfg;
-  enum udp_server_state_t state;
+struct server_ctx {
+  struct server_cfg *cfg;
+  enum server_state_t state;
   void *lock;
   int sk;
 };
@@ -22,9 +22,9 @@ struct udp_server_ctx {
 static const char MSG_ACK[5] = "ACK\n";
 static const char MSG_NACK[6] = "NACK\n";
 
-static enum udp_server_state_t __set_state(struct udp_server_ctx *ctx,
-                                           enum udp_server_state_t state) {
-  enum udp_server_state_t prev;
+static enum server_state_t __set_state(struct server_ctx *ctx,
+                                       enum server_state_t state) {
+  enum server_state_t prev;
   util_lock(ctx->lock);
   prev = ctx->state;
   ctx->state = state;
@@ -32,7 +32,7 @@ static enum udp_server_state_t __set_state(struct udp_server_ctx *ctx,
   return prev;
 }
 
-static int __bind(struct udp_server_cfg *cfg) {
+static int __bind(struct server_cfg *cfg) {
   int sk;
   int err = 0;
   struct in_addr in_addr;
@@ -153,8 +153,7 @@ static int __recv(int sk) {
   return err;
 }
 
-int udp_server_ctx_init(struct udp_server_cfg *cfg,
-                        struct udp_server_ctx **ctx) {
+int server_ctx_init(struct server_cfg *cfg, struct server_ctx **ctx) {
   int err = 0;
   *ctx = malloc(sizeof(**ctx));
   if (!*ctx) {
@@ -169,20 +168,20 @@ int udp_server_ctx_init(struct udp_server_cfg *cfg,
   return err;
 }
 
-static void __close(struct udp_server_ctx *ctx) {
+static void __close(struct server_ctx *ctx) {
   __set_state(ctx, CLOSED);
   close(ctx->sk);
 }
 
-int udp_server_ctx_destroy(struct udp_server_ctx *ctx) {
+int server_ctx_destroy(struct server_ctx *ctx) {
   __close(ctx);
   util_lock_destroy(ctx->lock);
   free(ctx);
   return 0;
 }
 
-void *udp_server_serve(struct udp_server_ctx *ctx) {
-  struct udp_server_cfg *cfg = ctx->cfg;
+void *server_serve(struct server_ctx *ctx) {
+  struct server_cfg *cfg = ctx->cfg;
 
   printf(PRINT_FMT "attempting to create server\n");
   ctx->sk = __bind(cfg);
@@ -204,7 +203,7 @@ exit:
   return NULL;
 }
 
-enum udp_server_state_t udp_server_state(struct udp_server_ctx *ctx) {
+enum server_state_t udp_server_state(struct server_ctx *ctx) {
   int ret = UNKNOWN;
   util_lock(ctx->lock);
   ret = ctx->state;

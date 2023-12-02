@@ -9,8 +9,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "lock.h"
 #include "server.h"
+#include "util/lock.h"
 
 struct udp_server_ctx {
   struct udp_server_cfg *cfg;

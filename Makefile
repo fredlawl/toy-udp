@@ -1,20 +1,23 @@
 CC := gcc
-OBJ += main.o server.o client.o
-WITH_LOCKS ?= y
-OBJ-LOCK-y := pthread_lock.o
-OBJ-LOCK-n := no_lock.o
-OBJ := $(OBJ) $(OBJ-LOCK-$(WITH_LOCKS))
+INCLUDES := -I.
 TARGET := main
+
+OBJ += main.o server/udp.o client/udp.o
+
+WITH_LOCKS ?= y
+OBJ-LOCK-y := util/pthread_lock.o
+OBJ-LOCK-n := util/no_lock.o
+OBJ := $(OBJ) $(OBJ-LOCK-$(WITH_LOCKS))
 
 .PHONY: all
 all: main
 
 .PHONY: clean
 clean:
-	rm -rf *.o $(TARGET)
+	rm -rf $(OBJ) $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(CC) -o $@ -lpthread $^
 
 $(OBJ): %.o : %.c
-	$(CC) -g -Wall -o $@ -c $<
+	$(CC) -g -Wall $(INCLUDES) -o $@ -c $<

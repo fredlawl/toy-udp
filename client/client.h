@@ -1,5 +1,4 @@
-#ifndef __CLIENT_H
-#define __CLIENT_H
+#pragma once
 
 #include <stdint.h>
 
@@ -12,5 +11,3 @@ struct client_cfg {
 int client_ctx_init(struct client_cfg *cfg, struct client_ctx **ctx);
 int client_ctx_destroy(struct client_ctx *ctx);
 void *client_serve(struct client_ctx *ctx);
-
-#endif

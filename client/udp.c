@@ -1,4 +1,4 @@
-#define PRINT_FMT "client: "
+#define PRINT_FMT "udp client: "
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -49,7 +49,7 @@ exit:
   return 0;
 }
 
-int client_ctx_init(struct client_cfg *cfg, struct client_ctx **ctx) {
+static int __ctx_init(struct client_cfg *cfg, struct client_ctx **ctx) {
   *ctx = malloc(sizeof(**ctx));
   if (!*ctx) {
     errno = ENOMEM;
@@ -61,13 +61,13 @@ int client_ctx_init(struct client_cfg *cfg, struct client_ctx **ctx) {
   return 0;
 }
 
-int client_ctx_destroy(struct client_ctx *ctx) {
+static int __ctx_destroy(struct client_ctx *ctx) {
   __close(ctx);
   free(ctx);
   return 0;
 }
 
-void *client_serve(struct client_ctx *ctx) {
+static void *__serve(struct client_ctx *ctx) {
   char buff[128] = {0};
   ssize_t bytes_read = 0;
   struct client_cfg *cfg = ctx->cfg;
@@ -93,3 +93,6 @@ exit:
   __close(ctx);
   return NULL;
 }
+
+struct client_ops udp_client = {
+    .serve = &__serve, .ctx_init = &__ctx_init, .ctx_destroy = &__ctx_destroy};

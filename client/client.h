@@ -8,6 +8,11 @@ struct client_cfg {
   uint16_t dest_port;
 };
 
-int client_ctx_init(struct client_cfg *cfg, struct client_ctx **ctx);
-int client_ctx_destroy(struct client_ctx *ctx);
-void *client_serve(struct client_ctx *ctx);
+struct client_ops {
+  int (*ctx_init)(struct client_cfg *cfg, struct client_ctx **ctx);
+  int (*ctx_destroy)(struct client_ctx *ctx);
+  void *(*serve)(struct client_ctx *ctx);
+};
+
+extern struct client_ops udp_client;
+extern struct client_ops tcp_client;

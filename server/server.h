@@ -10,7 +10,11 @@ struct server_cfg {
   uint16_t src_port;
 };
 
-int server_ctx_init(struct server_cfg *cfg, struct server_ctx **ctx);
-int server_ctx_destroy(struct server_ctx *ctx);
-enum server_state_t server_state(struct server_ctx *ctx);
-void *server_serve(struct server_ctx *ctx);
+struct server_ops {
+  int (*ctx_init)(struct server_cfg *cfg, struct server_ctx **ctx);
+  int (*ctx_destroy)(struct server_ctx *ctx);
+  void *(*serve)(struct server_ctx *ctx);
+  enum server_state_t (*server_state)(struct server_ctx *ctx);
+};
+
+extern struct server_ops udp_server;

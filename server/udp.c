@@ -1,4 +1,4 @@
-#define PRINT_FMT "srv: "
+#define PRINT_FMT "udp srv: "
 
 #include <arpa/inet.h>
 #include <asm-generic/errno-base.h>
@@ -153,7 +153,7 @@ static int __recv(int sk) {
   return err;
 }
 
-int server_ctx_init(struct server_cfg *cfg, struct server_ctx **ctx) {
+static int __ctx_init(struct server_cfg *cfg, struct server_ctx **ctx) {
   int err = 0;
   *ctx = malloc(sizeof(**ctx));
   if (!*ctx) {
@@ -173,14 +173,14 @@ static void __close(struct server_ctx *ctx) {
   close(ctx->sk);
 }
 
-int server_ctx_destroy(struct server_ctx *ctx) {
+static int __ctx_destroy(struct server_ctx *ctx) {
   __close(ctx);
   util_lock_destroy(ctx->lock);
   free(ctx);
   return 0;
 }
 
-void *server_serve(struct server_ctx *ctx) {
+static void *__serve(struct server_ctx *ctx) {
   struct server_cfg *cfg = ctx->cfg;
 
   printf(PRINT_FMT "attempting to create server\n");
@@ -203,10 +203,15 @@ exit:
   return NULL;
 }
 
-enum server_state_t server_state(struct server_ctx *ctx) {
+static enum server_state_t __server_state(struct server_ctx *ctx) {
   int ret = UNKNOWN;
   util_lock(ctx->lock);
   ret = ctx->state;
   util_unlock(ctx->lock);
   return ret;
 }
+
+struct server_ops udp_server = {.serve = &__serve,
+                                .ctx_init = &__ctx_init,
+                                .ctx_destroy = &__ctx_destroy,
+                                .server_state = &__server_state};

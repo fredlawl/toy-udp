@@ -2,7 +2,7 @@ CC := gcc
 INCLUDES := -I.
 TARGET := main
 
-OBJ += main.o server/udp.o client/udp.o
+OBJ += main.o server/udp.o client/udp.o client/tcp.o
 
 WITH_LOCKS ?= y
 OBJ-LOCK-y := util/pthread_lock.o

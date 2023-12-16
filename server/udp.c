@@ -1,5 +1,6 @@
 #define PRINT_FMT "udp srv: "
 
+#define _DEFAULT_SOURCE
 #include <arpa/inet.h>
 #include <asm-generic/errno-base.h>
 #include <errno.h>
@@ -7,12 +8,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "server.h"
 #include "util/lock.h"
+#include "udp.h"
 
-struct server_ctx {
+struct udp_server_ctx {
+  struct server_ops *ops;
   struct server_cfg *cfg;
   enum server_state_t state;
   void *lock;
@@ -22,7 +26,7 @@ struct server_ctx {
 static const char MSG_ACK[5] = "ACK\n";
 static const char MSG_NACK[6] = "NACK\n";
 
-static enum server_state_t __set_state(struct server_ctx *ctx,
+static enum server_state_t __set_state(struct udp_server_ctx *ctx,
                                        enum server_state_t state) {
   enum server_state_t prev;
   util_lock(ctx->lock);
@@ -153,65 +157,74 @@ static int __recv(int sk) {
   return err;
 }
 
-static int __ctx_init(struct server_cfg *cfg, struct server_ctx **ctx) {
-  int err = 0;
-  *ctx = malloc(sizeof(**ctx));
-  if (!*ctx) {
-    errno = ENOMEM;
-    return -1;
-  }
-
-  (*ctx)->cfg = cfg;
-  (*ctx)->lock = util_lock_init();
-  (*ctx)->state = CLOSED;
-  (*ctx)->sk = -1;
-  return err;
-}
-
-static void __close(struct server_ctx *ctx) {
+static void __close(struct udp_server_ctx *ctx) {
   __set_state(ctx, CLOSED);
   close(ctx->sk);
 }
 
-static int __ctx_destroy(struct server_ctx *ctx) {
-  __close(ctx);
-  util_lock_destroy(ctx->lock);
-  free(ctx);
-  return 0;
-}
-
-static void *__serve(struct server_ctx *ctx) {
-  struct server_cfg *cfg = ctx->cfg;
+static void *serve(struct server_ctx *ctx) {
+  struct udp_server_ctx *udp_ctx = (void *) ctx;
+  struct server_cfg *cfg = udp_ctx->cfg;
+  int sk = udp_ctx->sk;
 
   printf(PRINT_FMT "attempting to create server\n");
-  ctx->sk = __bind(cfg);
-  if (!ctx->sk) {
+  sk = __bind(cfg);
+  if (!sk) {
     fprintf(stderr, PRINT_FMT "failed to establish the server\n");
     goto exit;
   }
 
   printf(PRINT_FMT "now listening on %s:%d\n", cfg->src_ip, cfg->src_port);
 
-  __set_state(ctx, LISTENING);
+  __set_state(udp_ctx, LISTENING);
 
-  if (!__recv(ctx->sk)) {
+  if (!__recv(sk)) {
     fprintf(stderr, PRINT_FMT "error handling messages\n");
   }
 
 exit:
-  __close(ctx);
+  __close(udp_ctx);
   return NULL;
 }
 
 static enum server_state_t __server_state(struct server_ctx *ctx) {
+  struct udp_server_ctx *udp_ctx = (void*) ctx;
   int ret = UNKNOWN;
-  util_lock(ctx->lock);
-  ret = ctx->state;
-  util_unlock(ctx->lock);
+  util_lock(udp_ctx->lock);
+  ret = udp_ctx->state;
+  util_unlock(udp_ctx->lock);
   return ret;
 }
 
-struct server_ops udp_server = {.serve = &__serve,
-                                .ctx_init = &__ctx_init,
-                                .ctx_destroy = &__ctx_destroy,
-                                .server_state = &__server_state};
+struct server_ops udp_server = {.serve = serve,
+                                .server_state = __server_state};
+
+int server_udp_ctx_init(struct server_cfg *cfg, struct server_ctx **ctx) {
+  int err = 0;
+  struct udp_server_ctx *udp_ctx = malloc(sizeof(*udp_ctx));
+  if (!udp_ctx) {
+    errno = ENOMEM;
+    return -1;
+  }
+
+  udp_ctx->ops = &udp_server;
+  udp_ctx->cfg = cfg;
+  udp_ctx->lock = util_lock_init();
+  udp_ctx->state = UNKNOWN;
+  udp_ctx->sk = -1;
+  *ctx = (struct server_ctx*) udp_ctx;
+  return err;
+}
+
+int server_udp_ctx_destroy(struct server_ctx *ctx) {
+  struct udp_server_ctx *udp_ctx;
+  if (!ctx) {
+    return 0;
+  }
+
+  udp_ctx = (void *) ctx;
+  __close(udp_ctx);
+  util_lock_destroy(udp_ctx->lock);
+  free(udp_ctx);
+  return 0;
+}

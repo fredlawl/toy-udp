@@ -9,33 +9,44 @@
 #include <unistd.h>
 
 #include "client.h"
+#include "tcp.h"
 
-struct client_ctx {
+struct tcp_client_ctx {
+  struct client_ops* ops;
   struct client_cfg *cfg;
   char sneaky_data[10];
 };
 
-static int __ctx_init(struct client_cfg *cfg, struct client_ctx **ctx) {
-  *ctx = malloc(sizeof(**ctx));
-  if (!*ctx) {
-    errno = ENOMEM;
-    return -1;
-  }
-
-  (*ctx)->cfg = cfg;
-  memcpy((*ctx)->sneaky_data, "sneaky!", sizeof("sneaky!"));
-  return 0;
-}
-
-static int __ctx_destroy(struct client_ctx *ctx) {
-  free(ctx);
-  return 0;
-}
-
-static void *__serve(struct client_ctx *ctx) {
-  printf(PRINT_FMT "%s\n", ctx->sneaky_data);
+static void *serve(struct client_ctx *ctx) {
+  struct tcp_client_ctx *tcp_ctx = (void *)ctx;
+  printf(PRINT_FMT "%s\n", tcp_ctx->sneaky_data);
   return NULL;
 }
 
 struct client_ops tcp_client = {
-    .serve = &__serve, .ctx_init = &__ctx_init, .ctx_destroy = &__ctx_destroy};
+    .serve = serve};
+
+int client_tcp_ctx_init(struct client_cfg *cfg, struct client_ctx **ctx) {
+  struct tcp_client_ctx *tcp_ctx = malloc(sizeof(*tcp_ctx));
+  if (!tcp_ctx) {
+    errno = ENOMEM;
+    return -1;
+  }
+
+  tcp_ctx->ops = &tcp_client;
+  tcp_ctx->cfg = cfg;
+  memcpy(tcp_ctx->sneaky_data, "sneaky!", sizeof("sneaky!"));
+  *ctx = (struct client_ctx *)tcp_ctx;
+  return 0;
+}
+
+int client_tcp_ctx_destroy(struct client_ctx *ctx) {
+  struct tcp_client_ctx *client_ctx;
+  if (!ctx) {
+    return 0;
+  }
+
+  client_ctx = (void *)ctx;
+  free(client_ctx);
+  return 0;
+}

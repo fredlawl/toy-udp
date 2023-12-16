@@ -1,13 +1,21 @@
+PROJECT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 CC := gcc
-INCLUDES := -I.
+INCLUDES := -I$(PROJECT_DIR)
 TARGET := main
+CFLAGS := -g -Wall
 
-OBJ += main.o server/udp.o client/udp.o client/tcp.o
+OBJ += main.o server/server.o server/udp.o client/client.o client/udp.o client/tcp.o
 
-WITH_LOCKS ?= y
+CONFIG_WITH_LOCKS ?= n
 OBJ-LOCK-y := util/pthread_lock.o
-OBJ-LOCK-n := util/no_lock.o
-OBJ += $(OBJ-LOCK-$(WITH_LOCKS))
+OBJ-LOCK-n := 
+OBJ += $(OBJ-LOCK-$(CONFIG_WITH_LOCKS))
+
+ifeq ($(CONFIG_WITH_LOCKS),y)
+	VARS += -DCONFIG_WITH_LOCKS
+endif
+
+CFLAGS += $(VARS)
 
 .PHONY: all
 all: main
@@ -17,7 +25,7 @@ clean:
 	rm -rf $(OBJ) $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) -o $@ -lpthread $^
+	$(CC) $(CFLAGS) -o $@ -lpthread $^
 
 $(OBJ): %.o : %.c
-	$(CC) -g -Wall $(INCLUDES) -o $@ -c $<
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<

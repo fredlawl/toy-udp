@@ -1,3 +1,5 @@
+#include "client/client.h"
+#include "server/udp.h"
 #define PRINT_FMT "main: "
 
 #include <pthread.h>
@@ -5,7 +7,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "client/client.h"
+#include "client/tcp.h"
+#include "client/udp.h"
 #include "server/server.h"
 
 #define DEST_IP "127.0.0.1"
@@ -24,11 +27,11 @@ int main(int argc, char *argv[]) {
   struct client_ctx *tcp_client_ctx = NULL;
 
   // demo: tcp_client_ctx has different data from udp
-  tcp_client.ctx_init(&client_cfg, &tcp_client_ctx);
-  tcp_client.serve(tcp_client_ctx);
-  tcp_client.ctx_destroy(tcp_client_ctx);
+  client_tcp_ctx_init(&client_cfg, &tcp_client_ctx);
+  client_serve(tcp_client_ctx);
+  client_tcp_ctx_destroy(tcp_client_ctx);
 
-  err = udp_server.ctx_init(&server_cfg, &udp_server_ctx);
+  err = server_udp_ctx_init(&server_cfg, &udp_server_ctx);
   if (err) {
     perror(PRINT_FMT "udp_server_ctx_init()");
     goto exit;
@@ -40,7 +43,7 @@ int main(int argc, char *argv[]) {
     goto exit;
   }
 
-  err = pthread_create(&tid, &attr, udp_server.serve, udp_server_ctx);
+  err = pthread_create(&tid, &attr, server_serve, udp_server_ctx);
   if (err) {
     perror(PRINT_FMT "pthread_create()");
     goto exit;
@@ -52,26 +55,31 @@ int main(int argc, char *argv[]) {
     Normally, a state-machine would do the trick here, but I
     want to keep the client in the "main" thread.
   */
-  while (udp_server.server_state(udp_server_ctx) != LISTENING) {
+  enum server_state_t state;
+  while ((state = server_state(udp_server_ctx)) != LISTENING) {
+    if (state == CLOSED) {
+      goto join;
+    }
   }
 
-  err = udp_client.ctx_init(&client_cfg, &udp_client_ctx);
+  client_udp_ctx_init(&client_cfg, &udp_client_ctx);
   if (err) {
     perror(PRINT_FMT "udp_client_ctx_init()");
     goto exit;
   }
 
-  udp_client.serve(udp_client_ctx);
+  client_serve(udp_client_ctx);
 
+join:
   err = pthread_join(tid, NULL);
   if (err) {
     perror(PRINT_FMT "pthread_join()");
   }
 
 exit:
-  udp_client.ctx_destroy(udp_client_ctx);
+  client_udp_ctx_destroy(udp_client_ctx);  
   pthread_detach(tid);
   pthread_attr_destroy(&attr);
-  udp_server.ctx_destroy(udp_server_ctx);
+  server_udp_ctx_destroy(udp_server_ctx);
   return err;
 }

@@ -1,0 +1,9 @@
+CompileFlags:
+    Add: 
+        - -I./
+        - -std=c11
+        - -Wall
+    Remove:
+        - -fobjc-runtime
+        - -xobjective-c++-header
+    Compiler: /usr/local/bin/gcc

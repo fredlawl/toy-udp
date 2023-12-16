@@ -1,6 +1,6 @@
 CompileFlags:
     Add: 
-        - -I./
+        - --include.
         - -std=c11
         - -Wall
     Remove:
